@@ -23,12 +23,12 @@ if [ ! -d "$CONTAM" ] ; then
   exit
 fi
 
-if [ ! -r "$FQ1" ] ; then
+if [ ! -r "$FQZ1" ] ; then
   echo "'FQ1' does not exist."
   exit
 fi
 
-if [ ! -r "$FQ2" ] ; then
+if [ ! -r "$FQZ2" ] ; then
   echo "'FQ2' does not exist."
   exit
 fi
