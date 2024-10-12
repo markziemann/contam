@@ -4,9 +4,9 @@ VERSION=0.1
 # Parse arguments
 usage() {
     echo
-    echo "$0 is a script for the quantification of contaminant sequences in Illumina short read sequence data including genomic and transcriptome samples."
+    echo "contam is a script for the quantification of contaminant sequences in Illumina short read sequence data including genomic and transcriptome samples."
     echo
-    echo "Usage: $0 [-h] [-v] <-r HOST_REFERENCE_GENOME_FOLDER> <-c CONTAMINANTS_FOLDER> [-n NUM_READS] [-t NUM_THREADS] <-1 FASTQ_FILE_1> <-2 FASTQ_FILE_2> <-b FASTQ_BASE_NAME>"
+    echo "Usage: contam [-h] [-v] <-r HOST_REFERENCE_GENOME_FOLDER> <-c CONTAMINANTS_FOLDER> [-n NUM_READS] [-t NUM_THREADS] <-1 FASTQ_FILE_1> <-2 FASTQ_FILE_2> <-b FASTQ_BASE_NAME>"
     echo
     echo "  -h  Help. Display this message and quit."
     echo "  -v  Version. Print version number and quit."
