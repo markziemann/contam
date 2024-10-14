@@ -39,7 +39,7 @@ Usage: contam [-h] [-v] <-r HOST_REFERENCE_GENOME_FOLDER> <-c CONTAMINANTS_FOLDE
 
   -v  Version. Print version number and quit.
 
-  -r  Reference sequence (host) folder. Must be one gzip compressed fasta file with '.fa.gz' suffix.
+  -r  Reference sequence (host) folder. Must contain one gzip compressed fasta file with '.fa.gz' suffix.
 
   -c  Contaminant sequence folder. May contain one or many compressed fasta files.
 
@@ -57,7 +57,7 @@ Usage: contam [-h] [-v] <-r HOST_REFERENCE_GENOME_FOLDER> <-c CONTAMINANTS_FOLDE
 ### Native usage
 
 ```
-./contam contam.sif -r ref -c contam_folder -n 10000 -t 8 -1 test_R1.fq.gz -2 test_R2.fq.gz -b test
+./contam -r ref -c contam_folder -n 10000 -t 8 -1 test_R1.fq.gz -2 test_R2.fq.gz -b test
 ```
 
 ## Apptainer usage
