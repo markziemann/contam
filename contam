@@ -100,14 +100,14 @@ if [ "$THREADS" -gt 32 ] ; then
   THREADS=32
 fi
 
-SFX1=$(echo $FQZ1 | egrep -c  '(fastq.gz$|fa.gz$)' )
+SFX1=$(echo $FQZ1 | egrep -c  '(fastq.gz$|fq.gz$)' )
 if [ $SFX1 -eq 0 ] ; then
-  echo FASTQ_FILE_1 needs to have a fa.gz or fastq.gz suffix
+  echo FASTQ_FILE_1 needs to have a fq.gz or fastq.gz suffix
 fi
 
-SFX2=$(echo $FQZ2 | egrep -c  '(fastq.gz$|fa.gz$)' )
+SFX2=$(echo $FQZ2 | egrep -c  '(fastq.gz$|fq.gz$)' )
 if [ $SFX2 -eq 0 ] ; then
-  echo FASTQ_FILE_2 needs to have a fa.gz or fastq.gz suffix
+  echo FASTQ_FILE_2 needs to have a fq.gz or fastq.gz suffix
 fi
 
 # set ref seq
