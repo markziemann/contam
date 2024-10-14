@@ -49,7 +49,12 @@ FQ2=$BASE/R2.fastq
 FQT1=$BASE/R1-trimmed-pair1.fastq
 FQT2=$BASE/R1-trimmed-pair2.fastq
 
-## CHECKS
+## DEPENDENCY CHECKS
+[[ $(which skewer | wc -l) -eq 1 ]] || (echo "skewer executable not found in PATH" ; exit)
+[[ $(which bwa | wc -l) -eq 1 ]] || (echo "bwa executable not found in PATH" ; exit)
+[[ $(which samtools | wc -l) -eq 1 ]] || (echo "samtools executable not found in PATH" ; exit)
+
+## INPUT CHECKS
 if [ -z "$REF" ] ; then
   echo "Error: HOST_REFERENCE_GENOME_FOLDER not set."
   exit
@@ -70,26 +75,31 @@ if [ -z "$FQZ2" ] ; then
   exit
 fi
 
+REF=$PWD/$REF
 if [ ! -d "$REF" ] ; then
   echo "HOST_REFERENCE_GENOME_FOLDER does not exist."
   exit
 fi
 
+CONTAM=$PWD/$CONTAM
 if [ ! -d "$CONTAM" ] ; then
   echo "Error: 'CONTAMINANTS_FOLDER' does not exist."
   exit
 fi
 
+FQZ1=$PWD/$FQZ1
 if [ ! -r "$FQZ1" ] ; then
   echo "Error: 'FASTQ_FILE_1' does not exist."
   exit
 fi
 
+FQZ2=$PWD/$FQZ2
 if [ ! -r "$FQZ2" ] ; then
   echo "Error: 'FASTQ_FILE_2' does not exist."
   exit
 fi
 
+BASE=$PWD/$BASE
 if [ -z "$BASE" ] ; then
   echo "Error: FASTQ_BASE_NAME not set."
   exit
@@ -111,13 +121,13 @@ if [ $SFX2 -eq 0 ] ; then
 fi
 
 # set ref seq
-REFCNT=$(find "$REF" | grep -c fa.gz$)
+REFCNT=$(find -L "$REF" | grep -c fa.gz$)
 if [ $REFCNT -ne 1 ] ; then
   echo "There needs to be one reference sequence with a 'fa.gz' suffix!"
   exit
 fi
 
-REFFA=$(find "$REF" | grep fa.gz$ | head -1)
+REFFA=$(find "$REF/" | grep fa.gz$ | head -1)
 
 BWT=$REFFA.bwt
 
@@ -208,6 +218,5 @@ echo CONTAMINANT HOST_ONLY CONTAM_ONLY BOTH | tr ' ' '\t' > $RES
 cat $RES.tmp >> $RES
 rm $RES.tmp
 
-cat $RES | column -t
+cat $RES | awk '{printf("%16s %9s %11s %8s\n", $1, $2, $3, $4)}'
 
-echo
