@@ -28,6 +28,9 @@ After apptainer is installed, you can download and run the apptainer image file 
 
 ## Usage and options
 
+From the help page:
+
+```
 contam is a script for the quantification of contaminant sequences in Illumina short read sequence data including genomic and transcriptome samples.
 
 Usage: contam [-h] [-v] <-r HOST_REFERENCE_GENOME_FOLDER> <-c CONTAMINANTS_FOLDER> [-n NUM_READS] [-t NUM_THREADS] <-1 FASTQ_FILE_1> <-2 FASTQ_FILE_2> <-b FASTQ_BASE_NAME>
@@ -49,6 +52,7 @@ Usage: contam [-h] [-v] <-r HOST_REFERENCE_GENOME_FOLDER> <-c CONTAMINANTS_FOLDE
   -2  Second fastq file corresponding to read 2 of the pair.
 
   -b  Basename of the sequence dataset. This is the name of the folder where results will be saved.
+```
 
 ### Native usage
 
