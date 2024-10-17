@@ -10,7 +10,7 @@ usage() {
     echo
     echo "  -h  Help. Display this message and quit."
     echo "  -v  Version. Print version number and quit."
-    echo "  -r  Reference sequence (host) folder. Must be one gzip compressed fasta file with '.fa.gz' suffix."
+    echo "  -r  Reference sequence (host) folder. Must conain one gzip compressed fasta file with '.fa.gz' suffix."
     echo "  -c  Contaminant sequence folder. May contain one or many compressed fasta files."
     echo "  -n  Number of read pairs to analyze. Default is 1000000."
     echo "  -t  Number of parallel threads. Default is 2."
@@ -75,31 +75,34 @@ if [ -z "$FQZ2" ] ; then
   exit
 fi
 
-REF=$PWD/$REF
+#MYPWD=$(echo $PWD | sed 's/ /\\ /g')
+MYPWD=$PWD
+REF=$MYPWD/$REF
+echo $REF
+
 if [ ! -d "$REF" ] ; then
   echo "HOST_REFERENCE_GENOME_FOLDER does not exist."
   exit
 fi
 
-CONTAM=$PWD/$CONTAM
 if [ ! -d "$CONTAM" ] ; then
   echo "Error: 'CONTAMINANTS_FOLDER' does not exist."
   exit
 fi
 
-FQZ1=$PWD/$FQZ1
+#FQZ1=$MYPWD/$FQZ1
 if [ ! -r "$FQZ1" ] ; then
   echo "Error: 'FASTQ_FILE_1' does not exist."
   exit
 fi
 
-FQZ2=$PWD/$FQZ2
+#FQZ2=$MYPWD/$FQZ2
 if [ ! -r "$FQZ2" ] ; then
   echo "Error: 'FASTQ_FILE_2' does not exist."
   exit
 fi
 
-BASE=$PWD/$BASE
+#BASE=$MYPWD/$BASE
 if [ -z "$BASE" ] ; then
   echo "Error: FASTQ_BASE_NAME not set."
   exit
@@ -110,12 +113,12 @@ if [ "$THREADS" -gt 32 ] ; then
   THREADS=32
 fi
 
-SFX1=$(echo $FQZ1 | egrep -c  '(fastq.gz$|fq.gz$)' )
+SFX1=$(echo "$FQZ1" | egrep -c  '(fastq.gz$|fq.gz$)' )
 if [ $SFX1 -eq 0 ] ; then
   echo FASTQ_FILE_1 needs to have a fq.gz or fastq.gz suffix
 fi
 
-SFX2=$(echo $FQZ2 | egrep -c  '(fastq.gz$|fq.gz$)' )
+SFX2=$(echo "$FQZ2" | egrep -c  '(fastq.gz$|fq.gz$)' )
 if [ $SFX2 -eq 0 ] ; then
   echo FASTQ_FILE_2 needs to have a fq.gz or fastq.gz suffix
 fi
@@ -131,7 +134,7 @@ REFFA=$(find "$REF/" | grep fa.gz$ | head -1)
 
 BWT=$REFFA.bwt
 
-if [ ! -r $BWT ] ; then
+if [ ! -r "$BWT" ] ; then
   echo "Indexing the reference genome. This might take a while"
   bwa index $REFFA 2> /dev/null
 else
@@ -145,8 +148,8 @@ if [ $CONTAMCNT -eq 0 ] ; then
   exit
 fi
 
-for CONTAMFA in $CONTAM/*fa.gz ; do
-  if [ ! -r $CONTAMFA.bwt ] ; then
+for CONTAMFA in $(find "$CONTAM" | grep fa.gz$ | sed 's/ /\\ /g' ) ; do
+  if [ ! -r "$CONTAMFA.bwt" ] ; then
     echo "Indexing contaminant genome $CONTAMFA"
     bwa index $CONTAMFA 2> /dev/null
   else
@@ -161,15 +164,15 @@ NLINES=$(echo $NREADS | awk '{print $1 * 4}')
 
 echo "Starting fastq processing now."
 
-zcat $FQZ1 | head -$NLINES > $FQ1
-zcat $FQZ2 | head -$NLINES > $FQ2
+zcat "$FQZ1" | head -$NLINES > "$FQ1"
+zcat "$FQZ2" | head -$NLINES > "$FQ2"
 
-skewer -t $THREADS -q 20 $FQ1 $FQ2 2> /dev/null > /dev/null
+skewer -t $THREADS -q 20 "$FQ1" "$FQ2" 2> /dev/null > /dev/null
 
 RES=$BASE/result.tsv
->$RES
+>"$RES"
 
-HOSTCNT=$(bwa mem -t $THREADS $REFFA $FQT1 $FQT2 2> /dev/null \
+HOSTCNT=$(bwa mem -t $THREADS "$REFFA" "$FQT1" "$FQT2" 2> /dev/null \
 | samtools view -q 10 -F 4 - 2> /dev/null \
 | awk '!arr[$1]++' | wc -l )
 
@@ -185,18 +188,18 @@ for CONTAMFA in $CONTAM/*fa.gz ; do
   MAPPEDFQ2=$CONTAMBAM.R2.fastq
   MAPPEDFQSINGLES=$CONTAMBAM.SINGLES.fastq
 
-  bwa mem -t $THREADS $CONTAMFA $FQT1 $FQT2 2> /dev/null \
+  bwa mem -t $THREADS $CONTAMFA "$FQT1" "$FQT2" 2> /dev/null \
   | samtools view -q 10 -F 4 -uSh - 2> /dev/null \
-  | samtools sort -o $CONTAMBAM - 2> /dev/null
+  | samtools sort -o "$CONTAMBAM" - 2> /dev/null
 
-  samtools index $CONTAMBAM
+  samtools index "$CONTAMBAM"
 
-  CONTAMCNT=$(samtools view -q 10 -F 4 $CONTAMBAM | awk '!arr[$1]++' | wc -l )
+  CONTAMCNT=$(samtools view -q 10 -F 4 "$CONTAMBAM" | awk '!arr[$1]++' | wc -l )
 
   if [ $CONTAMCNT -gt 0 ] ; then
-    samtools fastq -F 4 -1 $MAPPEDFQ1 -2 $MAPPEDFQ2 -s $MAPPEDFQSINGLES $CONTAMBAM 2> /dev/null
+    samtools fastq -F 4 -1 "$MAPPEDFQ1" -2 "$MAPPEDFQ2" -s "$MAPPEDFQSINGLES" "$CONTAMBAM" 2> /dev/null
 
-    REFMAPCNT=$(bwa mem -t $THREADS $REFFA $MAPPEDFQ1 $MAPPEDFQ2 2> /dev/null \
+    REFMAPCNT=$(bwa mem -t $THREADS "$REFFA" "$MAPPEDFQ1" "$MAPPEDFQ2" 2> /dev/null \
     | samtools view -q 10 -F 4 - 2> /dev/null \
     | awk '!arr[$1]++' | wc -l )
 
