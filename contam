@@ -15,7 +15,7 @@ usage() {
     echo "  -n  Number of read pairs to analyze. Default is 1000000."
     echo "  -t  Number of parallel threads. Default is 2."
     echo "  -1  First fastq file corresponding to read 1 of the pair."
-    echo "  -2  Second fastq file corresponding to read 2 of the pair."
+    echo "  -2  Second fastq file corresponding to read 2 of the pair. Omit for single-end sequencing runs"
     echo "  -b  Basename of the sequence dataset. This is the name of the folder where results will be saved."
     echo
     exit
@@ -44,11 +44,6 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-FQ1=$BASE/R1.fastq
-FQ2=$BASE/R2.fastq
-FQT1=$BASE/R1-trimmed-pair1.fastq
-FQT2=$BASE/R1-trimmed-pair2.fastq
-
 ## DEPENDENCY CHECKS
 [[ $(which skewer | wc -l) -eq 1 ]] || (echo "skewer executable not found in PATH" ; exit)
 [[ $(which bwa | wc -l) -eq 1 ]] || (echo "bwa executable not found in PATH" ; exit)
@@ -56,76 +51,101 @@ FQT2=$BASE/R1-trimmed-pair2.fastq
 
 ## INPUT CHECKS
 if [ -z "$REF" ] ; then
+  echo
   echo "Error: HOST_REFERENCE_GENOME_FOLDER not set."
   exit
 fi
 
 if [ -z "$CONTAM" ] ; then
+  echo
   echo "Error: CONTAMINANTS_FOLDER not set."
   exit
 fi
 
 if [ -z "$FQZ1" ] ; then
+  echo
   echo "Error: 'FASTQ_FILE_1' not set."
   exit
 fi
 
 if [ -z "$FQZ2" ] ; then
-  echo "Error: 'FASTQ_FILE_2' not set."
-  exit
+  echo
+  echo "Note: 'FASTQ_FILE_2' not set. Running in single-end mode"
+  PE=FALSE
+  FQ1=$BASE/R1.fastq
+  FQT1=$BASE/R1-trimmed.fastq
+else
+  PE=TRUE
+  FQ1=$BASE/R1.fastq
+  FQ2=$BASE/R2.fastq
+  FQT1=$BASE/R1-trimmed-pair1.fastq
+  FQT2=$BASE/R1-trimmed-pair2.fastq
+  echo
+  echo Running in paired-end mode.
 fi
 
-#MYPWD=$(echo $PWD | sed 's/ /\\ /g')
 MYPWD=$PWD
 REF=$MYPWD/$REF
-echo $REF
 
 if [ ! -d "$REF" ] ; then
+  echo
   echo "HOST_REFERENCE_GENOME_FOLDER does not exist."
   exit
 fi
 
 if [ ! -d "$CONTAM" ] ; then
+  echo
   echo "Error: 'CONTAMINANTS_FOLDER' does not exist."
   exit
 fi
 
 #FQZ1=$MYPWD/$FQZ1
 if [ ! -r "$FQZ1" ] ; then
+  echo
   echo "Error: 'FASTQ_FILE_1' does not exist."
   exit
 fi
 
-#FQZ2=$MYPWD/$FQZ2
-if [ ! -r "$FQZ2" ] ; then
-  echo "Error: 'FASTQ_FILE_2' does not exist."
-  exit
+if [ $PE == "TRUE" ] ; then
+  if [ ! -r "$FQZ2" ] ; then
+    echo
+    echo "Error: 'FASTQ_FILE_2' does not exist."
+    exit
+  fi
+
 fi
 
 #BASE=$MYPWD/$BASE
 if [ -z "$BASE" ] ; then
+  echo
   echo "Error: FASTQ_BASE_NAME not set."
   exit
 fi
 
 if [ "$THREADS" -gt 32 ] ; then
+  echo
   echo "The number of parallel threads is capped at 32."
   THREADS=32
 fi
 
 SFX1=$(echo "$FQZ1" | egrep -c  '(fastq.gz$|fq.gz$)' )
 if [ $SFX1 -eq 0 ] ; then
+  echo
   echo FASTQ_FILE_1 needs to have a fq.gz or fastq.gz suffix
 fi
 
-SFX2=$(echo "$FQZ2" | egrep -c  '(fastq.gz$|fq.gz$)' )
-if [ $SFX2 -eq 0 ] ; then
-  echo FASTQ_FILE_2 needs to have a fq.gz or fastq.gz suffix
+if [ $PE == "TRUE" ] ; then
+  SFX2=$(echo "$FQZ2" | egrep -c  '(fastq.gz$|fq.gz$)' )
+  if [ $SFX2 -eq 0 ] ; then
+    echo
+    echo FASTQ_FILE_2 needs to have a fq.gz or fastq.gz suffix
+  fi
 fi
 
 # set ref seq
 REFCNT=$(find -L "$REF" | grep -c fa.gz$)
 if [ $REFCNT -ne 1 ] ; then
+  echo
   echo "There needs to be one reference sequence with a 'fa.gz' suffix!"
   exit
 fi
@@ -135,24 +155,29 @@ REFFA=$(find "$REF/" | grep fa.gz$ | head -1)
 BWT=$REFFA.bwt
 
 if [ ! -r "$BWT" ] ; then
+  echo
   echo "Indexing the reference genome. This might take a while"
   bwa index $REFFA 2> /dev/null
 else
+  echo
   echo "Reference genome is already indexed."
 fi
 
 # set up contam sequences
 CONTAMCNT=$(find "$CONTAM" | grep -c fa.gz$)
 if [ $CONTAMCNT -eq 0 ] ; then
+  echo
   echo "There needs to be at least one contaminant genome sequence with a 'fa.gz' suffix!"
   exit
 fi
 
 for CONTAMFA in $(find "$CONTAM" | grep fa.gz$ | sed 's/ /\\ /g' ) ; do
   if [ ! -r "$CONTAMFA.bwt" ] ; then
+    echo
     echo "Indexing contaminant genome $CONTAMFA"
     bwa index $CONTAMFA 2> /dev/null
   else
+    echo
     echo "$CONTAMFA already indexed."
   fi
 done
@@ -162,59 +187,108 @@ mkdir $BASE 2> /dev/null
 
 NLINES=$(echo $NREADS | awk '{print $1 * 4}')
 
+echo
 echo "Starting fastq processing now."
 
 zcat "$FQZ1" | head -$NLINES > "$FQ1"
-zcat "$FQZ2" | head -$NLINES > "$FQ2"
 
-skewer -t $THREADS -q 20 "$FQ1" "$FQ2" 2> /dev/null > /dev/null
+if [ $PE == "TRUE" ] ; then
+  zcat "$FQZ2" | head -$NLINES > "$FQ2"
+  skewer -t $THREADS -q 20 "$FQ1" "$FQ2" 2> /dev/null > /dev/null
+else
+  skewer -t $THREADS -q 20 "$FQ1" 2> /dev/null > /dev/null
+fi
 
 RES=$BASE/result.tsv
 >"$RES"
 
-HOSTCNT=$(bwa mem -t $THREADS "$REFFA" "$FQT1" "$FQT2" 2> /dev/null \
-| samtools view -q 10 -F 4 - 2> /dev/null \
-| awk '!arr[$1]++' | wc -l )
+if [ $PE == "TRUE" ] ; then
+  HOSTCNT=$(bwa mem -t $THREADS "$REFFA" "$FQT1" "$FQT2" 2> /dev/null \
+  | samtools view -q 10 -F 4 - 2> /dev/null \
+  | awk '!arr[$1]++' | wc -l )
 
-for CONTAMFA in $CONTAM/*fa.gz ; do
+  for CONTAMFA in $CONTAM/*fa.gz ; do
 
-  >&2 echo
-  >&2 echo "Starting analysis of $FQZ1 and $FQZ2 with contaminant $CONTAMFA"
-  >&2 echo
+    >&2 echo
+    >&2 echo "Starting analysis of $FQZ1 and $FQZ2 with contaminant $CONTAMFA"
 
-  SHORT=$(echo $CONTAMFA | rev | cut -f1 -d '/' | rev | cut -c-15 | sed 's/.fa.gz//')
-  CONTAMBAM=$BASE/$SHORT.bam
-  MAPPEDFQ1=$CONTAMBAM.R1.fastq
-  MAPPEDFQ2=$CONTAMBAM.R2.fastq
-  MAPPEDFQSINGLES=$CONTAMBAM.SINGLES.fastq
+    SHORT=$(echo $CONTAMFA | rev | cut -f1 -d '/' | rev | cut -c-15 | sed 's/.fa.gz//')
+    CONTAMBAM=$BASE/$SHORT.bam
+    MAPPEDFQ1=$CONTAMBAM.R1.fastq
+    MAPPEDFQ2=$CONTAMBAM.R2.fastq
+    MAPPEDFQSINGLES=$CONTAMBAM.SINGLES.fastq
 
-  bwa mem -t $THREADS $CONTAMFA "$FQT1" "$FQT2" 2> /dev/null \
-  | samtools view -q 10 -F 4 -uSh - 2> /dev/null \
-  | samtools sort -o "$CONTAMBAM" - 2> /dev/null
+    bwa mem -t $THREADS $CONTAMFA "$FQT1" "$FQT2" 2> /dev/null \
+    | samtools view -q 10 -F 4 -uSh - 2> /dev/null \
+    | samtools sort -o "$CONTAMBAM" - 2> /dev/null
 
-  samtools index "$CONTAMBAM"
+    samtools index "$CONTAMBAM"
 
-  CONTAMCNT=$(samtools view -q 10 -F 4 "$CONTAMBAM" | awk '!arr[$1]++' | wc -l )
+    CONTAMCNT=$(samtools view -q 10 -F 4 "$CONTAMBAM" | awk '!arr[$1]++' | wc -l )
 
-  if [ $CONTAMCNT -gt 0 ] ; then
-    samtools fastq -F 4 -1 "$MAPPEDFQ1" -2 "$MAPPEDFQ2" -s "$MAPPEDFQSINGLES" "$CONTAMBAM" 2> /dev/null
+    if [ $CONTAMCNT -gt 0 ] ; then
+      samtools fastq -F 4 -1 "$MAPPEDFQ1" -2 "$MAPPEDFQ2" -s "$MAPPEDFQSINGLES" "$CONTAMBAM" 2> /dev/null
 
-    REFMAPCNT=$(bwa mem -t $THREADS "$REFFA" "$MAPPEDFQ1" "$MAPPEDFQ2" 2> /dev/null \
-    | samtools view -q 10 -F 4 - 2> /dev/null \
-    | awk '!arr[$1]++' | wc -l )
+      REFMAPCNT=$(bwa mem -t $THREADS "$REFFA" "$MAPPEDFQ1" "$MAPPEDFQ2" 2> /dev/null \
+      | samtools view -q 10 -F 4 - 2> /dev/null \
+      | awk '!arr[$1]++' | wc -l )
 
-  else
-    REFMAPCNT=0
-  fi
+    else
+      REFMAPCNT=0
+    fi
 
-  echo $SHORT $HOSTCNT $CONTAMCNT $REFMAPCNT
+    echo $SHORT $HOSTCNT $CONTAMCNT $REFMAPCNT
 
-  >&2 echo
-  >&2 echo "Done!"
-  >&2 echo
+    >&2 echo
+    >&2 echo "Done!"
 
-done | tr ' ' '\t' >> $RES
+  done | tr ' ' '\t' >> $RES
 
+else
+
+  # SINGLE END
+  HOSTCNT=$(bwa mem -t $THREADS "$REFFA" "$FQT1" 2> /dev/null \
+  | samtools view -q 10 - 2> /dev/null \
+  | awk '!arr[$1]++' | wc -l )
+
+  for CONTAMFA in $CONTAM/*fa.gz ; do
+
+    >&2 echo
+    >&2 echo "Starting analysis of $FQZ1 with contaminant $CONTAMFA"
+
+    SHORT=$(echo $CONTAMFA | rev | cut -f1 -d '/' | rev | cut -c-15 | sed 's/.fa.gz//')
+    CONTAMBAM=$BASE/$SHORT.bam
+    MAPPEDFQ1=$CONTAMBAM.R1.fastq
+
+    bwa mem -t $THREADS $CONTAMFA "$FQT1" 2> /dev/null \
+    | samtools view -q 10 -uSh - 2> /dev/null \
+    | samtools sort -o "$CONTAMBAM" - 2> /dev/null
+
+    samtools index "$CONTAMBAM"
+
+    CONTAMCNT=$(samtools view -q 10 "$CONTAMBAM" | awk '!arr[$1]++' | wc -l )
+
+    if [ $CONTAMCNT -gt 0 ] ; then
+      samtools fastq "$CONTAMBAM" 2> /dev/null >  "$MAPPEDFQ1"
+
+      REFMAPCNT=$(bwa mem -t $THREADS "$REFFA" "$MAPPEDFQ1" 2> /dev/null \
+      | samtools view -q 10 - 2> /dev/null \
+      | awk '!arr[$1]++' | wc -l )
+
+    else
+      REFMAPCNT=0
+    fi
+
+    echo $SHORT $HOSTCNT $CONTAMCNT $REFMAPCNT
+
+    >&2 echo
+    >&2 echo "Done!"
+
+  done | tr ' ' '\t' >> $RES
+
+fi
+
+# OUTPUT FINAL RESULTS
 awk '{OFS="\t"} {print $1,$2-4,$3-$4,$4}' $RES > $RES.tmp
 
 echo CONTAMINANT HOST_ONLY CONTAM_ONLY BOTH | tr ' ' '\t' > $RES
@@ -223,3 +297,5 @@ rm $RES.tmp
 
 cat $RES | awk '{printf("%16s %9s %11s %8s\n", $1, $2, $3, $4)}'
 
+echo
+echo A table of results has been saved to $RES
