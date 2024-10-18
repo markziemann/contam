@@ -6,7 +6,7 @@ usage() {
     echo
     echo "contam is a script for the quantification of contaminant sequences in Illumina short read sequence data including genomic and transcriptome samples."
     echo
-    echo "Usage: contam [-h] [-v] <-r HOST_REFERENCE_GENOME_FOLDER> <-c CONTAMINANTS_FOLDER> [-n NUM_READS] [-t NUM_THREADS] <-1 FASTQ_FILE_1> <-2 FASTQ_FILE_2> <-b FASTQ_BASE_NAME>"
+    echo "Usage: contam [-h] [-v] <-r HOST_REFERENCE_GENOME_FOLDER> <-c CONTAMINANTS_FOLDER> [-n NUM_READS] [-t NUM_THREADS] <-1 FASTQ_FILE_1> [-2 FASTQ_FILE_2] <-b FASTQ_BASE_NAME>"
     echo
     echo "  -h  Help. Display this message and quit."
     echo "  -v  Version. Print version number and quit."
@@ -15,9 +15,12 @@ usage() {
     echo "  -n  Number of read pairs to analyze. Default is 1000000."
     echo "  -t  Number of parallel threads. Default is 2."
     echo "  -1  First fastq file corresponding to read 1 of the pair."
-    echo "  -2  Second fastq file corresponding to read 2 of the pair. Omit for single-end sequencing runs"
+    echo "  -2  Second fastq file corresponding to read 2 of the pair. Omit for single-end sequencing runs."
     echo "  -b  Basename of the sequence dataset. This is the name of the folder where results will be saved."
     echo
+    echo 'Output: For each sequence dataset, a folder is created which contains the intermediate files and final results, called "result.tsv". The result.tsv file contains four columns, the contaminant name (abbreviated to 15 characters), The number of reads that mapped to the host genome only, the number of reads that mapped to the contaminant genome only and the number of reads that mapped to both. Each line in the file corresponds to a different contaminant. '
+    echo
+
     exit
 }
 

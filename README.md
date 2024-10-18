@@ -1,9 +1,10 @@
 # contam
 
-`contam` is a bash script that uses BWA MEM alignment to quantify contamination from paired end
+`contam` is a bash script that uses BWA MEM alignment to quantify contamination from
 Illumina sequences.
 This is particularly useful for screening RNA-seq data derived from in vitro cultures where mycoplasma
 contamination is fairly common.
+It is tested to work with single- and paired-end RNA-seq and DNA-seq, and might work for other sequence data types.
 
 ## Installation - native
 
@@ -24,7 +25,6 @@ Apptainer pre built packages are available; see the [docs](https://apptainer.org
 After apptainer is installed, you can download and run the apptainer image file (`contam.sif`).
 
 `apptainer run --bind $PWD:/contam contam.sif -h`
-
 
 ## Usage and options
 
@@ -49,9 +49,17 @@ Usage: contam [-h] [-v] <-r HOST_REFERENCE_GENOME_FOLDER> <-c CONTAMINANTS_FOLDE
 
   -1  First fastq file corresponding to read 1 of the pair.
 
-  -2  Second fastq file corresponding to read 2 of the pair.
+  -2  Second fastq file corresponding to read 2 of the pair. Omit for single-end sequencing runs.
 
   -b  Basename of the sequence dataset. This is the name of the folder where results will be saved.
+
+Output: For each sequence dataset, a folder is created which contains the intermediate files
+and final results, called "result.tsv".
+The result.tsv file contains four columns, the contaminant name (abbreviated to 15 characters),
+The number of reads that mapped to the host genome only, the number of reads that mapped to
+the contaminant genome only and the number of reads that mapped to both.
+Each line in the file corresponds to a different contaminant.
+
 ```
 
 ### Native usage
