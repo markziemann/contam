@@ -1,0 +1,31 @@
+BootStrap: docker
+From: ubuntu:24.04
+
+%post
+  # Update apt-get
+  apt-get update \
+    && apt-get upgrade -y \
+    && apt-get install -y wget git skewer samtools bwa \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+  # get a clone of the codes
+  git clone https://github.com/markziemann/contam.git
+
+  # Set the container working directory
+  DIRPATH=/contam
+  cd $DIRPATH
+
+%environment
+  export DIRPATH=/contam
+
+%runscript
+  cd $DIRPATH
+  exec /bin/bash contam "$@"
+
+%startscript
+  cd $DIRPATH
+
+%labels
+   Author Mark Ziemann
+   Date 14 Oct 2024
