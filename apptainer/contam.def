@@ -14,7 +14,6 @@ From: ubuntu:24.04
 
   # Set the container working directory
   DIRPATH=/contam
-  cd $DIRPATH
 
 %environment
   export DIRPATH=/contam
