@@ -10,7 +10,12 @@ From: ubuntu:24.04
     && rm -rf /var/lib/apt/lists/*
 
   # get a clone of the codes
-  git clone https://github.com/markziemann/contam.git
+  git clone https://github.com/markziemann/contam.git \
+  && cd contam \
+  && mkdir -p ~/.local/bin/ \
+  && cp contam ~/.local/bin/ \
+  && export PATH=$PATH:~/.local/bin/ >> ~/.bashrc
+
 
   # Set the container working directory
   DIRPATH=/contam
@@ -20,7 +25,7 @@ From: ubuntu:24.04
 
 %runscript
   cd $DIRPATH
-  exec /bin/bash contam "$@"
+  exec /bin/bash ~/.local/bin/contam "$@"
 
 %startscript
   cd $DIRPATH
