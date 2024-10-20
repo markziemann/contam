@@ -5,6 +5,7 @@ Illumina sequences.
 This is particularly useful for screening RNA-seq data derived from in vitro cultures where mycoplasma
 contamination is fairly common.
 It is tested to work with single- and paired-end RNA-seq and DNA-seq, and might work for other sequence data types.
+An apptainer image is provided to allow portability.
 
 ## Installation - native
 
