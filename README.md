@@ -25,7 +25,10 @@ Apptainer pre built packages are available; see the [docs](https://apptainer.org
 
 After apptainer is installed, you can download and run the apptainer image file (`contam.sif`).
 
-`apptainer run --bind $PWD:/contam contam.sif -h`
+```
+wget https://ziemann-lab.net/public/contam/contam.sif
+apptainer run --bind $PWD:/contam contam.sif -h
+```
 
 ## Usage and options
 
