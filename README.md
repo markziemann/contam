@@ -57,6 +57,8 @@ Usage: contam [-h] [-v] <-r HOST_REFERENCE_GENOME_FOLDER> <-c CONTAMINANTS_FOLDE
 
   -b  Basename of the sequence dataset. This is the name of the folder where results will be saved.
 
+  -B  Batchfile. If you have many sequence datasets to screen, a batchfile will save time. The first line of the batchfile contains specifications for the whole batch (-r -c -n -t options here with spaces in between arguments and values). From line 2 onwards, each line represents a sequence dataset with the first field specifying the basename, the second field specifying read 1 and the third field, if present, represents read 2 of the pair. Fields must be tab-separated. If no file is specified in field 3, then it is assumed to be a single end dataset.
+
 Output: For each sequence dataset, a folder is created which contains the intermediate files
 and final results, called "result.tsv".
 The result.tsv file contains four columns, the contaminant name (abbreviated to 15 characters),
@@ -77,3 +79,28 @@ Each line in the file corresponds to a different contaminant.
 ```
 apptainer run --bind $PWD:/contam contam.sif -r ref -c contam_folder -n 10000 -t 8 -1 test_R1.fq.gz -2 test_R2.fq.gz -b test
 ```
+
+## Batch mode
+
+If you have many datasets to check, it may be convenient to run this analysis in batch mode.
+Specify a batchfile using the `-B` argument:
+
+```
+./contam  -B batchfile.txt
+apptainer run --bind $PWD:/contam contam.sif -B batchfile.txt 
+
+```
+
+The batch file has overall run options on the first line, including `-r -c -n -t` options separated by spaces.
+From line 2 onwards the first field represents the basename of the dataset, field 2 is the first fastq file and
+field 3 is optional second read in the pair.
+Lines 2 onward need to be separated by tabs.
+Here is an example.
+ 
+```
+-r ref -c contam_folder -n 1000000 -t 16
+P1	P1_R1.fastq.gz	P1_R2.fastq.gz
+P2	P2_R1.fastq.gz	P2_R2.fastq.gz
+P2_single	P2_R1.fastq.gz
+```
+

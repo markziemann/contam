@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION=0.1
+VERSION=0.2
 
 # Parse arguments
 usage() {
@@ -17,8 +17,9 @@ usage() {
     echo "  -1  First fastq file corresponding to read 1 of the pair."
     echo "  -2  Second fastq file corresponding to read 2 of the pair. Omit for single-end sequencing runs."
     echo "  -b  Basename of the sequence dataset. This is the name of the folder where results will be saved."
+    echo "  -B  Batchfile. If you have many sequence datasets to screen, a batchfile will save time. The first line of the batchfile contains specifications for the whole batch (-r -c -n -t options here with spaces in between arguments and values). From line 2 onwards, each line represents a sequence dataset with the first field specifying the basename, the second field specifying read 1 and the third field, if present, represents read 2 of the pair. Fields must be tab-separated. If no file is specified in field 3, then it is assumed to be a single end dataset."
     echo
-    echo 'Output: For each sequence dataset, a folder is created which contains the intermediate files and final results, called "result.tsv". The result.tsv file contains four columns, the contaminant name (abbreviated to 15 characters), The number of reads that mapped to the host genome only, the number of reads that mapped to the contaminant genome only and the number of reads that mapped to both. Each line in the file corresponds to a different contaminant. '
+    echo 'Output: For each sequence dataset, a folder is created which contains the intermediate files and final results, called "result.tsv". The result.tsv file contains four columns, the contaminant name (abbreviated to 15 characters), The number of reads that mapped to the host genome only, the number of reads that mapped to the contaminant genome only and the number of reads that mapped to both. Each line in the file corresponds to a different contaminant. If a batchfile is provided, then the results summary will be written to <batchfilename>_result.tsv.'
     echo
 
     exit
@@ -42,10 +43,48 @@ while [[ "$#" -gt 0 ]]; do
         -n|--numreads) NREADS="$2" ; shift ;;
         -t|--threads) THREADS="$2" ; shift ;;
         -b|--basename) BASE="$2" ; shift ;;
+        -B|--batch) BATCHFILE="$2" ; shift ;;
         *) echo "Unknown parameter passed: $1"; exit 1 ;;
     esac
     shift
 done
+
+# If batchmode is set, then coordinate the runs
+if [ ! -z $BATCHFILE ] ; then
+  if [ ! -r "$BATCHFILE" ] ; then
+    echo
+    echo "Error: Batch mode was set, but the batchfile is not readable."
+    exit
+  fi
+
+  L1=$(sed -n 1p $BATCHFILE)
+  BATCHRES=${BATCHFILE}_result.tsv
+  > $BATCHRES
+
+  sed 1d $BATCHFILE | tr '\t' '@' | while read line ; do
+    BATCHBASE=$(echo $line | cut -d '@' -f1)
+    BATCHFQZ1=$(echo $line | cut -d '@' -f2)
+    BATCHFQZ2=$(echo $line | cut -d '@' -f3)
+
+    if [ -z $BATCHFQZ2 ] ; then
+      echo Basename: $BATCHBASE, batchfqz1 $BATCHFQZ1
+      $0 $L1 -1 $BATCHFQZ1 -b $BATCHBASE
+    else
+      echo
+      echo Basename: $BATCHBASE, batchfqz1 $BATCHFQZ1, batchfqz2 $BATCHFQZ2
+      $0 $L1 -1 $BATCHFQZ1 -2 $BATCHFQZ2 -b $BATCHBASE
+    fi
+    awk 'NR>1 {print $4/$2}' $BATCHBASE/result.tsv | paste -s -d '\t' | sed "s@^@${BATCHBASE}\t@" >> $BATCHRES
+  done
+  RESOUTFILE=$(tail -1 $BATCHFILE | cut -f1)/result.tsv
+  awk 'NR>1 {print $1}' $RESOUTFILE | paste -s -d '\t' | sed 's@^@Dataset\t@' >> $BATCHRES
+  tac $BATCHRES > .tmp && mv .tmp $BATCHRES
+  echo
+  echo "Here is the result summary. Values are ratio of contaminant:host unique reads (%). It has been saved to $BATCHRES "
+  echo
+  cat $BATCHRES
+  exit
+fi
 
 ## DEPENDENCY CHECKS
 [[ $(which skewer | wc -l) -eq 1 ]] || (echo "skewer executable not found in PATH" ; exit)
@@ -115,7 +154,6 @@ if [ $PE == "TRUE" ] ; then
     echo "Error: 'FASTQ_FILE_2' does not exist."
     exit
   fi
-
 fi
 
 #BASE=$MYPWD/$BASE
