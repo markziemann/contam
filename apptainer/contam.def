@@ -1,5 +1,6 @@
 BootStrap: docker
-From: ubuntu:24.04
+From: ubuntu:22.04
+# Version 0.2 2024-10-31
 
 %post
   # Update apt-get
@@ -12,10 +13,7 @@ From: ubuntu:24.04
   # get a clone of the codes
   git clone https://github.com/markziemann/contam.git \
   && cd contam \
-  && mkdir -p ~/.local/bin/ \
-  && cp contam ~/.local/bin/ \
-  && export PATH=$PATH:~/.local/bin/ >> ~/.bashrc
-
+  && cp contam /usr/local/bin/
 
   # Set the container working directory
   DIRPATH=/contam
@@ -25,7 +23,7 @@ From: ubuntu:24.04
 
 %runscript
   cd $DIRPATH
-  exec /bin/bash ~/.local/bin/contam "$@"
+  exec /bin/bash /usr/local/bin/contam "$@"
 
 %startscript
   cd $DIRPATH
