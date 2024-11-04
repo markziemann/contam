@@ -104,3 +104,7 @@ P2	P2_R1.fastq.gz	P2_R2.fastq.gz
 P2_single	P2_R1.fastq.gz
 ```
 
+Batch runs generate the same output as single files, and for convenience, an additional file is created
+(name:<batchfile>_result.tsv) to summarise all datasets in the batch. 
+The values shown are ratio of contaminant:host unique reads expressed as a percentage.
+Each column is a potential contaminant and each row is a sample.
